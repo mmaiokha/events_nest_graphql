@@ -2,16 +2,17 @@ import { HttpException, HttpStatus, Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 
 import { DeleteResult, Repository } from "typeorm";
-import { Events } from "./events.entity";
+import { Events } from "../events.entity";
 
-import { CreateEventDto } from "./inputs/dto/createEvent.dto";
-import { UpdateEventDto } from "./inputs/dto/updateEvent.dto";
-import { AttendeesAnswersEnum } from "../attendee/attendee.entity";
+import { CreateEventDto } from "../inputs/dto/createEvent.dto";
+import { UpdateEventDto } from "../inputs/dto/updateEvent.dto";
+import { AttendeesAnswersEnum } from "../../attendee/attendee.entity";
 import { SelectQueryBuilder } from "typeorm/query-builder/SelectQueryBuilder";
-import { FilterEventsDto, WhenEventFilter } from "./inputs/dto/filterEvents.dto";
-import { PaginatedEventsResultInterface } from "./inputs/interfaces/paginatedEventsResult.interface";
+import { FilterEventsDto, WhenEventFilter } from "../inputs/dto/filterEvents.dto";
+import { PaginatedEventsResultInterface } from "../inputs/interfaces/paginatedEventsResult.interface";
 
-import {  paginate } from "../paginator/paginator";
+import { paginate } from "../../paginator/paginator";
+import { Users } from "../../users/users.entity";
 
 
 @Injectable()
@@ -76,10 +77,11 @@ export class EventsService {
     return await paginate({ take, skip }, queryBuilder);
   }
 
-  async createOne(data: CreateEventDto): Promise<Events> {
+  async createOne(data: CreateEventDto, currentUser: Users): Promise<Events> {
     const event = new Events();
     Object.assign(event, {
       ...data,
+      organizer: currentUser,
       when: new Date(data.when)
     });
     return await this.eventRepository.save(event);
@@ -93,19 +95,26 @@ export class EventsService {
     return event;
   }
 
-  async updateOne(id: number, data: UpdateEventDto): Promise<Events> {
+  async updateOne(id: number, data: UpdateEventDto, currentUserId: number): Promise<Events> {
     const event = await this.eventRepository.findOneBy({ id });
     if (!event) {
       throw new HttpException("Event not found", HttpStatus.NOT_FOUND);
+    }
+    if (event.organizer.id !== currentUserId) {
+      throw new HttpException("You are not an organizer", HttpStatus.BAD_REQUEST);
     }
     Object.assign(event, data);
 
     return await this.eventRepository.save(event);
   }
 
-  async deleteOne(id: number): Promise<DeleteResult> {
-    if (!await this.eventRepository.findOneBy({ id })) {
+  async deleteOne(id: number, currentUserId: number): Promise<DeleteResult> {
+    const event = await this.eventRepository.findOneBy({ id });
+    if (!event) {
       throw new HttpException("Event not found", HttpStatus.NOT_FOUND);
+    }
+    if (event.organizer.id !== currentUserId) {
+      throw new HttpException("You are not an organizer", HttpStatus.BAD_REQUEST);
     }
     return await this.eventRepository.delete({ id });
   }
@@ -114,6 +123,28 @@ export class EventsService {
     const page = query.page || 1;
     const take: number = query.take || 10;
     const skip: number = (page - 1) * take;
-    return await paginate({take, skip}, this.eventRepository.createQueryBuilder('event'))
+    return await paginate({ take, skip }, this.eventRepository.createQueryBuilder("event"));
+  }
+
+  async getAllOrganizedByUser(userId: number, currentPage: number): Promise<PaginatedEventsResultInterface> {
+    const page = currentPage || 1;
+    const take: number = 10;
+    const skip: number = (page - 1) * take;
+    const qb = this.eventRepository.createQueryBuilder("event")
+      .andWhere('event.organizerId = :userId', {userId})
+    return await paginate({ take, skip }, qb);
+  }
+
+  async getEventsAttendedByUserId(currentPage: number, userId: number) {
+    const page = currentPage || 1
+    const take: number = 10;
+    const skip: number = (page - 1) * take;
+
+    const qb = this.eventRepository.createQueryBuilder('event')
+      .leftJoin('event.attendees', 'attendees')
+      .where('attendees.userId = :userId', {userId})
+
+
+    return paginate({take, skip}, await this.addAttendeeCountToQb(qb))
   }
 }

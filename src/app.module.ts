@@ -3,9 +3,11 @@ import {TypeOrmModule} from "@nestjs/typeorm";
 import { EventsModule } from './events/events.module';
 import { AttendeeModule } from './attendee/attendee.module';
 import { ConfigModule } from "@nestjs/config";
+import { UsersModule } from './users/users.module';
+import { AuthModule } from './auth/auth.module';
 
-import ormConfig from "./config/orm.config";
-import ormProdConfig from "./config/orm.prod.config";
+import ormConfig from "./config/orm/orm.config";
+import ormProdConfig from "./config/orm/orm.prod.config";
 
 @Module({
   imports: [
@@ -17,6 +19,8 @@ import ormProdConfig from "./config/orm.prod.config";
     }),
     EventsModule,
     AttendeeModule,
+    UsersModule,
+    AuthModule,
   ],
   controllers: [],
   providers: [],
