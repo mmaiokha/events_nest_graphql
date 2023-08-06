@@ -6,13 +6,14 @@ import { Events } from "./events.entity";
 import { EventsAttendeesController } from "./controllers/events.attendees.controller";
 import { AttendeeModule } from "../attendee/attendee.module";
 import { EventsOrganizedByUserController } from "./controllers/events.organizedByUser.controller";
+import { EventsResolver } from "./events.resolver";
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Events]),
     forwardRef(() => AttendeeModule)
   ],
-  providers: [EventsService],
+  providers: [EventsService, EventsResolver],
   controllers: [EventsController, EventsAttendeesController, EventsOrganizedByUserController],
   exports: [TypeOrmModule, EventsService]
 })

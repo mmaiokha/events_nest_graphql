@@ -3,6 +3,7 @@ import { Attendees } from "../../attendee/attendee.entity";
 import { TypeOrmModuleOptions } from "@nestjs/typeorm";
 import { registerAs } from "@nestjs/config";
 
+
 export default registerAs('orm.prod.config', (): TypeOrmModuleOptions => ({
   type: 'postgres',
   host: process.env.DB_HOST,

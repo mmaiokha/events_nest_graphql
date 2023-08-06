@@ -31,7 +31,7 @@ export class AuthService {
         return user;
       }
     }
-    return null;
+    throw new HttpException('Username or password incorrect', HttpStatus.UNAUTHORIZED)
   }
 
   async register(registerDto: RegisterDto) {

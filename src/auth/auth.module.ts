@@ -5,9 +5,10 @@ import { JwtStrategy } from "./strategies/jwt.strategy";
 import { LocalStrategy } from "./strategies/local.strategy";
 import { UsersModule } from "../users/users.module";
 import { JwtModule } from "@nestjs/jwt";
+import { AuthResolver } from "./auth.resolver";
 
 @Module({
-  providers: [AuthService, JwtStrategy, LocalStrategy],
+  providers: [AuthService, JwtStrategy, LocalStrategy, AuthResolver],
   controllers: [AuthController],
   imports: [JwtModule.register({
     signOptions: {
