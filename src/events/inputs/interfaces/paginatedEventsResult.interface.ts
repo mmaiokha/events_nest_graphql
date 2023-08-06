@@ -1,4 +1,6 @@
-import { IPaginationResult } from "../../../paginator/paginator";
+import { PaginatedResult } from "../../../paginator/paginator";
 import { Events } from "../../events.entity";
+import { ObjectType } from "@nestjs/graphql";
 
-export interface PaginatedEventsResultInterface extends IPaginationResult<Events> {}
+@ObjectType()
+export class PaginatedEventsResultInterface extends PaginatedResult(Events) {}

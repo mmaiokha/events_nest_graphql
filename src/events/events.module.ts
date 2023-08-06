@@ -6,7 +6,7 @@ import { Events } from "./events.entity";
 import { EventsAttendeesController } from "./controllers/events.attendees.controller";
 import { AttendeeModule } from "../attendee/attendee.module";
 import { EventsOrganizedByUserController } from "./controllers/events.organizedByUser.controller";
-import { EventsResolver } from "./events.resolver";
+import { EventsResolver } from "./resolvers/events.resolver";
 
 @Module({
   imports: [

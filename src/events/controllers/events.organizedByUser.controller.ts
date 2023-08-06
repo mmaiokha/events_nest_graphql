@@ -1,5 +1,6 @@
 import { Controller, Get, Param, ParseIntPipe, Query } from "@nestjs/common";
 import { EventsService } from "../services/events.service";
+import { PaginationQueryDto } from "../../paginator/paginationQuery.dto";
 
 @Controller('events/organized-by/:userId')
 export class EventsOrganizedByUserController {
@@ -10,9 +11,9 @@ export class EventsOrganizedByUserController {
   @Get()
   async getAll(
     @Param('userId', ParseIntPipe) userId: number,
-    @Query('page') page: number = 1
+    @Query() query: PaginationQueryDto
   ) {
-    return await this.eventsService.getAllOrganizedByUser(userId, page)
+    return await this.eventsService.getAllOrganizedByUser(userId, query)
   }
 
 }

@@ -13,6 +13,7 @@ import { PaginatedEventsResultInterface } from "../inputs/interfaces/paginatedEv
 
 import { paginate } from "../../paginator/paginator";
 import { Users } from "../../users/users.entity";
+import { PaginationQueryDto } from "../../paginator/paginationQuery.dto";
 
 
 @Injectable()
@@ -49,7 +50,7 @@ export class EventsService {
     const skip: number = (page - 1) * take;
 
     if (!query) {
-      return await paginate({ take, skip }, queryBuilder);
+      return await paginate({ take, skip }, PaginatedEventsResultInterface, queryBuilder);
     }
 
     if (query.when) {
@@ -74,7 +75,14 @@ export class EventsService {
 
     }
 
-    return await paginate({ take, skip }, queryBuilder);
+    console.log(await paginate<Events, PaginatedEventsResultInterface>({
+      take,
+      skip
+    }, PaginatedEventsResultInterface, queryBuilder));
+    return await paginate<Events, PaginatedEventsResultInterface>({
+      take,
+      skip
+    }, PaginatedEventsResultInterface, queryBuilder);
   }
 
   async createOne(data: CreateEventDto, currentUser: Users): Promise<Events> {
@@ -88,7 +96,10 @@ export class EventsService {
   }
 
   async getOne(id: number): Promise<Events> {
-    const event = await this.eventRepository.findOneBy({ id });
+    const event = await this.eventRepository.findOne({
+      where: { id },
+      relations: ["organizer"]
+    });
     if (!event) {
       throw new HttpException("Event not found", HttpStatus.NOT_FOUND);
     }
@@ -96,11 +107,11 @@ export class EventsService {
   }
 
   async updateOne(id: number, data: UpdateEventDto, currentUserId: number): Promise<Events> {
-    const event = await this.eventRepository.findOneBy({ id });
+    const event = await this.eventRepository.findOne({ where: { id }, relations: ["organizer"] });
     if (!event) {
       throw new HttpException("Event not found", HttpStatus.NOT_FOUND);
     }
-    if (event.organizer.id !== currentUserId) {
+    if (event.organizerId !== currentUserId) {
       throw new HttpException("You are not an organizer", HttpStatus.BAD_REQUEST);
     }
     Object.assign(event, data);
@@ -113,7 +124,7 @@ export class EventsService {
     if (!event) {
       throw new HttpException("Event not found", HttpStatus.NOT_FOUND);
     }
-    if (event.organizer.id !== currentUserId) {
+    if (event.organizerId !== currentUserId) {
       throw new HttpException("You are not an organizer", HttpStatus.BAD_REQUEST);
     }
     return await this.eventRepository.delete({ id });
@@ -123,28 +134,34 @@ export class EventsService {
     const page = query.page || 1;
     const take: number = query.take || 10;
     const skip: number = (page - 1) * take;
-    return await paginate({ take, skip }, this.eventRepository.createQueryBuilder("event"));
+    return await paginate({
+      take,
+      skip
+    }, PaginatedEventsResultInterface, this.eventRepository.createQueryBuilder("event"));
   }
 
-  async getAllOrganizedByUser(userId: number, currentPage: number): Promise<PaginatedEventsResultInterface> {
-    const page = currentPage || 1;
-    const take: number = 10;
+  async getAllOrganizedByUser(userId: number, paginationQuery: PaginationQueryDto): Promise<PaginatedEventsResultInterface> {
+    const page = paginationQuery.page || 1;
+    const take: number = paginationQuery.take || 10;
     const skip: number = (page - 1) * take;
-    const qb = this.eventRepository.createQueryBuilder("event")
-      .andWhere('event.organizerId = :userId', {userId})
-    return await paginate({ take, skip }, qb);
+    const qb = this.addAttendeeCountToQb(this.eventRepository.createQueryBuilder("event")
+      .andWhere("event.organizerId = :userId", { userId }));
+    return await paginate({ take, skip }, PaginatedEventsResultInterface, qb);
   }
 
   async getEventsAttendedByUserId(currentPage: number, userId: number) {
-    const page = currentPage || 1
+    const page = currentPage || 1;
     const take: number = 10;
     const skip: number = (page - 1) * take;
 
-    const qb = this.eventRepository.createQueryBuilder('event')
-      .leftJoin('event.attendees', 'attendees')
-      .where('attendees.userId = :userId', {userId})
+    const qb = this.eventRepository.createQueryBuilder("event")
+      .leftJoin("event.attendees", "attendees")
+      .where("attendees.userId = :userId", { userId });
 
 
-    return paginate({take, skip}, await this.addAttendeeCountToQb(qb))
+    return paginate<Events, PaginatedEventsResultInterface>({
+      take,
+      skip
+    }, PaginatedEventsResultInterface, await this.addAttendeeCountToQb(qb));
   }
 }
